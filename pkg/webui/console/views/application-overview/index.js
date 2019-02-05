@@ -17,7 +17,6 @@ import { connect } from 'react-redux'
 import { Col, Row, Container } from 'react-grid-system'
 
 import sharedMessages from '../../../lib/shared-messages'
-import Message from '../../../lib/components/message'
 import DateTime from '../../../lib/components/date-time'
 import DevicesTable from '../../containers/devices-table'
 import DataSheet from '../../../components/data-sheet'
@@ -39,6 +38,7 @@ class ApplicationOverview extends React.Component {
       ids,
       description,
       created_at,
+      updated_at,
     } = this.props.application
 
     const sheetData = [
