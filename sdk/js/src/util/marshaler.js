@@ -95,6 +95,9 @@ class Marshaler {
   }
 
   static fieldMask (fieldMask) {
+    if (fieldMask instanceof Array) {
+      return { paths: fieldMask.map( e => e.join('.')) }
+    }
     return { paths: fieldMask }
   }
 
