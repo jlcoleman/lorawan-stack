@@ -13,10 +13,10 @@
 // limitations under the License.
 
 import Marshaler from '../util/marshaler'
-import Device from '../entity/device'
 import Application from '../entity/application'
-import ApiKeys from './api-keys'
+import ApiKeysService from './api-keys'
 import Link from './link'
+import Device from './devices'
 
 /**
  * Applications Class provides an abstraction on all applications and manages
@@ -33,11 +33,12 @@ class Applications {
   constructor (api, { defaultUserId, proxy = true }) {
     this._defaultUserId = defaultUserId
     this._api = api
+    this._proxy = proxy
     this._applicationTransform = proxy
       ? app => new Application(this, app, false)
       : undefined
 
-    this.ApiKeys = new ApiKeys(api.ApplicationAccess, {
+    this.ApiKeys = new ApiKeysService(api.ApplicationAccess, {
       list: 'application_id',
       create: 'application_ids.application_id',
       update: 'application_ids.application_id',
