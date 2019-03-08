@@ -30,11 +30,12 @@ import Device from './devices'
  *  should be proxied with the wrapper objects.
  */
 class Applications {
-  constructor (api, { defaultUserId, proxy = true }) {
+  constructor (api, { defaultUserId, stackConfig, proxy = true }) {
     this._defaultUserId = defaultUserId
     this._api = api
     this._proxy = proxy
 
+    this.Devices = new Device(api, { stackConfig, proxy })
     this.ApiKeys = new ApiKeysService(api.ApplicationAccess, {
       parentRoutes: {
         list: 'application_id',
@@ -43,7 +44,6 @@ class Applications {
       },
     })
     this.Link = new Link(api.As)
-    this.Devices = new Device(api, { proxy })
 
     this.getAll = this.getAll.bind(this)
     this.getById = this.getById.bind(this)
