@@ -43,7 +43,7 @@ class Applications {
       update: 'application_ids.application_id',
     })
     this.Link = new Link(api.As)
-    this.Device = new Device(api, { proxy })
+    this.Devices = new Device(api, { proxy })
 
     this.getAll = this.getAll.bind(this)
     this.getById = this.getById.bind(this)
