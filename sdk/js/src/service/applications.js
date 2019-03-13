@@ -36,9 +36,11 @@ class Applications {
     this._proxy = proxy
 
     this.ApiKeys = new ApiKeysService(api.ApplicationAccess, {
-      list: 'application_id',
-      create: 'application_ids.application_id',
-      update: 'application_ids.application_id',
+      parentRoutes: {
+        list: 'application_id',
+        create: 'application_ids.application_id',
+        update: 'application_ids.application_id',
+      },
     })
     this.Link = new Link(api.As)
     this.Devices = new Device(api, { proxy })
@@ -67,14 +69,14 @@ class Applications {
   // Retrieval
 
   async getAll (params) {
-    const response = await this._api.ApplicationRegistry.List({ query: params })
+    const response = await this._api.ApplicationRegistry.List({ queryParams: params })
 
     return this._responseTransform(response)
   }
 
   async getById (id) {
     const response = await this._api.ApplicationRegistry.Get({
-      route: { 'application_ids.application_id': id },
+      routeParams: { 'application_ids.application_id': id },
     })
 
     return this._responseTransform(response)
@@ -82,7 +84,7 @@ class Applications {
 
   async getByOrganization (organizationId) {
     const response = this._api.ApplicationRegistry.List({
-      route: { 'collaborator.organization_ids.organization_id': organizationId },
+      routeParams: { 'collaborator.organization_ids.organization_id': organizationId },
     })
 
     return this._responseTransform(response)
@@ -90,7 +92,7 @@ class Applications {
 
   async getByCollaborator (userId) {
     const response = this._api.ApplicationRegistry.List({
-      route: { 'collaborator.user_ids.user_id': userId },
+      routeParams: { 'collaborator.user_ids.user_id': userId },
     })
 
     return this._responseTransform(response)
@@ -98,7 +100,7 @@ class Applications {
 
   async search (params) {
     const response = await this._api.EntityRegistrySearch.SearchApplications({
-      query: params,
+      queryParams: params,
     })
 
     return this._responseTransform(response)
@@ -108,22 +110,25 @@ class Applications {
 
   async updateById (id, patch, mask = Marshaler.fieldMaskFromPatch(patch)) {
     const response = await this._api.ApplicationRegistry.Update({
-      route: {
+      routeParams: {
         'application.ids.application_id': id,
       },
     },
     {
       application: patch,
-      field_mask: Marshaler.fieldMask(mask),
+      field_mask: mask,
     })
-    return this._responseTransform(response)
+    return Marshaler.unwrapApplication(
+      response,
+      this._applicationTransform
+    )
   }
 
   // Create
 
   async create (userId = this._defaultUserId, application) {
     const response = await this._api.ApplicationRegistry.Create({
-      route: { 'collaborator.user_ids.user_id': userId },
+      routeParams: { 'collaborator.user_ids.user_id': userId },
     },
     { application })
     return this._responseTransform(response)
@@ -133,13 +138,13 @@ class Applications {
 
   async deleteById (applicationId) {
     return this._api.ApplicationRegistry.Delete({
-      route: { application_id: applicationId },
+      routeParams: { application_id: applicationId },
     })
   }
 
   async getRightsById (applicationId) {
     const result = await this._api.ApplicationAccess.ListRights({
-      route: { application_id: applicationId },
+      routeParams: { application_id: applicationId },
     })
 
     return Marshaler.unwrapRights(result)
