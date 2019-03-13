@@ -25,10 +25,11 @@ import deviceEntityMap from '../../generated/device-entity-map.json'
  * device data.
  */
 class Devices {
-  constructor (api, { applicationId, proxy = true }) {
+  constructor (api, { proxy = true }) {
+    if (!api) {
+      throw new Error('Cannot initialize device service without api object.')
+    }
     this._api = api
-    this._applicationId = applicationId
-    this._idMask = { route: { 'end_device.ids.application_ids.application_id': this._applicationId }}
     this._entityTransform = proxy
       ? app => new Device(this, app, false)
       : undefined
@@ -85,11 +86,10 @@ class Devices {
     return result
   }
 
-  async _setDevice (device, create = false, applicationId = this._applicationId) {
-
+  async _setDevice (applicationId, device, create = false) {
     const ids = device.ids
-    const deviceId = 'device_id' in ids && device.ids.device_id
-    const appId = applicationId || 'application_ids' in ids ? ids.application_ids.application_id : undefined
+    const deviceId = 'device_id' in ids && ids.device_id
+    const appId = applicationId || 'application_ids' in ids && ids.application_ids.application_id
 
     if (!create && !deviceId) {
       throw new Error('Missing device_id for update operation.')
@@ -168,7 +168,11 @@ class Devices {
     return result
   }
 
-  async _getDevice (deviceId, paths, applicationId = this._applicationId) {
+  async _getDevice (applicationId, deviceId, paths) {
+
+    if (!applicationId) {
+      throw new Error('Missing application_id for device.')
+    }
 
     const requestTree = this._splitEntityGetPaths(paths)
 
@@ -222,20 +226,20 @@ class Devices {
     return result
   }
 
-  async getById (deviceId, selector) {
-    const result = await this._getDevice(deviceId, Marshaler.selectorToPaths(selector))
+  async getById (applicationId, deviceId, selector) {
+    const result = await this._getDevice(applicationId, deviceId, Marshaler.selectorToPaths(selector))
 
     return result
   }
 
-  async updateById (deviceId, patch, applicationId = this._applicationId) {
-    const result = await this._setDevice(deviceId, true, applicationId)
+  async updateById (applicationId, deviceId, patch) {
+    const result = await this._setDevice(applicationId, patch, true)
 
     return result
   }
 
-  async create (device, applicationId = this._applicationId) {
-    const result = await this._setDevice(device, true, applicationId)
+  async create (applicationId, device) {
+    const result = await this._setDevice(applicationId, device, true)
 
     return result
   }
