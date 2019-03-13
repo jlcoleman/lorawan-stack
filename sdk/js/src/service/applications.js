@@ -43,6 +43,7 @@ class Applications {
       update: 'application_ids.application_id',
     })
     this.Link = new Link(api.As)
+    this.Device = new Device(api, { proxy })
 
     this.getAll = this.getAll.bind(this)
     this.getById = this.getById.bind(this)
@@ -52,7 +53,6 @@ class Applications {
     this.updateById = this.updateById.bind(this)
     this.create = this.create.bind(this)
     this.deleteById = this.deleteById.bind(this)
-    this.withId = this.withId.bind(this)
     this.getRightsById = this.getRightsById.bind(this)
   }
 
@@ -155,55 +155,6 @@ class Applications {
     })
 
     return Marshaler.unwrapRights(result)
-  }
-
-  // Shorthand to methods of single application
-  withId (id) {
-    const parent = this
-    const api = parent._api
-    const idMask = { 'application_ids.application_id': id }
-    return {
-      async getDevices () {
-        return api.EndDeviceRegistry.List(idMask)
-      },
-      async getDevice (deviceId) {
-        const result = await api.EndDeviceRegistry.Get({
-          'end_device_ids.application_ids.application_id': id,
-          device_id: deviceId,
-        })
-        return new Device(result, api)
-      },
-      async getApiKeys (params) {
-        return this.ApiKeys.getAll(id, params)
-      },
-      async getCollaborators () {
-        return api.ApplicationAccess.ListCollaborators({ application_id: id })
-      },
-      async addApiKey (key) {
-        return this.ApiKeys.create(id, key)
-      },
-      async deleteApiKey (keyId) {
-        return this.ApiKeys.deleteById(id, keyId)
-      },
-      async updateApikey (keyId, patch) {
-        return this.ApiKeys.updateById(id, keyId, patch)
-      },
-      async addCollaborator (collaborator) {
-        return api.ApplicationAccess.SetCollaborator(idMask, collaborator)
-      },
-      async createLink (link) {
-        return this.Link.create(id, link)
-      },
-      async setLink (link, mask) {
-        return this.Link.set(id, link, mask)
-      },
-      async deleteLink () {
-        return this.Link.delete(id)
-      },
-      async getLinkStats () {
-        return this.Link.getStats(id)
-      },
-    }
   }
 }
 
