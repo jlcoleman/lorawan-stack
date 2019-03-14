@@ -26,16 +26,15 @@ class Link {
 
   async get (appId, fieldMask) {
     const result = await this._api.GetLink({
-      route: { 'application_ids.application_id': appId },
-      query: Marshaler.queryFieldMask(fieldMask),
-    })
+      routeParams: { 'application_ids.application_id': appId },
+    }, Marshaler.selectorToFieldMask(selector))
 
     return Marshaler.payloadSingleResponse(result)
   }
 
   async set (appId, data, mask = Marshaler.fieldMaskFromPatch(data)) {
     const result = await this._api.SetLink({
-      route: { 'application_ids.application_id': appId },
+      routeParams: { 'application_ids.application_id': appId },
     },
     {
       link: data,
@@ -47,7 +46,7 @@ class Link {
 
   async delete (appId) {
     const result = await this._api.DeleteLink({
-      route: { application_id: appId },
+      routeParams: { application_id: appId },
     })
 
     return Marshaler.payloadSingleResponse(result)
@@ -55,7 +54,7 @@ class Link {
 
   async getStats (appId) {
     const result = await this._api.GetLinkStats({
-      route: { application_id: appId },
+      routeParams: { application_id: appId },
     })
 
     return Marshaler.payloadSingleResponse(result)
