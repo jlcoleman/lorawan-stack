@@ -24,7 +24,7 @@ class Link {
     this.getStats = this.getStats.bind(this)
   }
 
-  async get (appId, fieldMask) {
+  async get (appId, selector) {
     const result = await this._api.GetLink({
       routeParams: { 'application_ids.application_id': appId },
     }, Marshaler.selectorToFieldMask(selector))
@@ -38,7 +38,7 @@ class Link {
     },
     {
       link: data,
-      field_mask: Marshaler.fieldMask(mask),
+      field_mask: mask,
     })
 
     return Marshaler.payloadSingleResponse(result)
