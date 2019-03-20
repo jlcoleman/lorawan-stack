@@ -19,7 +19,6 @@ import (
 
 	"go.thethings.network/lorawan-stack/pkg/basicstation"
 	"go.thethings.network/lorawan-stack/pkg/errors"
-	"go.thethings.network/lorawan-stack/pkg/gatewayserver/io"
 	"go.thethings.network/lorawan-stack/pkg/ttnpb"
 )
 
@@ -59,37 +58,22 @@ func (dnmsg *DownlinkMessage) GetFromNSDownlinkMessage(ids ttnpb.GatewayIdentifi
 	dnmsg.DevEUI = basicstation.EUI{Prefix: "DevEui", EUI64: *down.EndDeviceIDs.DevEUI}
 	dnmsg.Pdu = string(down.GetRawPayload())
 	dnmsg.DeviceClass = uint(txReq.Class)
-	dnmsg.RxDelay = int(txReq.Rx1Delay)
-
-	//TODO: Check if this is from Band or FP
-	dnmsg.Rx1DR = int(txReq.Rx1DataRateIndex)
-	dnmsg.Rx1Freq = int(txReq.Rx1Frequency)
-	dnmsg.Rx2DR = int(txReq.Rx2DataRateIndex)
-	dnmsg.Rx2Freq = int(txReq.Rx2Frequency)
-
 	dnmsg.Priority = int(txReq.Priority)
 
-	//TODO: Use GS Scheduler similar to the other frontends:
-	for _, path := range txReq.DownlinkPaths {
-		fixedPath := path.GetFixed()
-		if fixedPath != nil {
-			if fixedPath.GatewayID == ids.GatewayID {
-				dnmsg.RCtx = int64(fixedPath.AntennaIndex)
-				break
-			}
-			continue
-		}
-		if token := path.GetUplinkToken(); len(token) == 0 {
-			antennaIDs, timestamp, err := io.ParseUplinkToken(token)
-			if err != nil {
-				return errDownlinkMessage
-			}
-			if antennaIDs.GatewayID == ids.GatewayID {
-				dnmsg.RCtx = int64(antennaIDs.AntennaIndex)
-				dnmsg.XTime = int64(timestamp)
-				break
-			}
-		}
+	// TODO: Confirm this value
+	dnmsg.RxDelay = 0
+
+	scheduledMsg := down.GetScheduled()
+	// Send the Station Rx Slot based on the chosen Rx frequency in the scheduled message.
+	if scheduledMsg.Frequency == txReq.Rx1Frequency {
+		dnmsg.Rx1DR = int(scheduledMsg.DataRateIndex)
+		dnmsg.Rx1Freq = int(scheduledMsg.Frequency)
+	} else {
+		dnmsg.Rx2DR = int(scheduledMsg.DataRateIndex)
+		dnmsg.Rx2Freq = int(scheduledMsg.Frequency)
 	}
+
+	//TODO: Get RCtx and Xtime from the uplink token somehow.
+
 	return nil
 }
