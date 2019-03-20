@@ -105,6 +105,8 @@ func (ns *NetworkServer) matchDevice(ctx context.Context, up *ttnpb.UplinkMessag
 	if err := ns.devices.RangeByAddr(pld.DevAddr,
 		[]string{
 			"frequency_plan_id",
+			"ids.dev_eui",
+			"ids.join_eui",
 			"lorawan_phy_version",
 			"mac_settings.resets_f_cnt",
 			"mac_settings.supports_32_bit_f_cnt",
@@ -460,9 +462,12 @@ func (ns *NetworkServer) handleUplink(ctx context.Context, up *ttnpb.UplinkMessa
 		[]string{
 			"downlink_margin",
 			"frequency_plan_id",
+			"ids.dev_addr",
+			"ids.dev_eui",
+			"ids.join_eui",
 			"last_dev_status_received_at",
-			"lorawan_version",
 			"lorawan_phy_version",
+			"lorawan_version",
 			"mac_settings",
 			"mac_state",
 			"pending_session",
@@ -512,7 +517,10 @@ func (ns *NetworkServer) handleUplink(ctx context.Context, up *ttnpb.UplinkMessa
 				if stored.PendingSession.DevAddr != stored.MACState.PendingJoinRequest.DevAddr {
 					panic("Pending session does not match the join request")
 				}
+
 				stored.EndDeviceIdentifiers.DevAddr = &stored.MACState.PendingJoinRequest.DevAddr
+				paths = append(paths, "ids.dev_addr")
+
 				stored.MACState.CurrentParameters.Rx1Delay = stored.MACState.PendingJoinRequest.RxDelay
 				stored.MACState.CurrentParameters.Rx1DataRateOffset = stored.MACState.PendingJoinRequest.DownlinkSettings.Rx1DROffset
 				stored.MACState.CurrentParameters.Rx2DataRateIndex = stored.MACState.PendingJoinRequest.DownlinkSettings.Rx2DR
@@ -845,6 +853,8 @@ func (ns *NetworkServer) handleJoin(ctx context.Context, up *ttnpb.UplinkMessage
 	dev, err = ns.devices.SetByID(ctx, dev.EndDeviceIdentifiers.ApplicationIdentifiers, dev.EndDeviceIdentifiers.DeviceID,
 		[]string{
 			"frequency_plan_id",
+			"ids.dev_eui",
+			"ids.join_eui",
 			"lorawan_phy_version",
 			"lorawan_version",
 			"mac_settings",
