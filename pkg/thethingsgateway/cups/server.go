@@ -104,7 +104,10 @@ func (s *Server) RegisterRoutes(srv *web.Server) {
 	group := srv.Group(compatAPIPrefix)
 	group.GET("/gateways/:gateway_id", func(c echo.Context) error {
 		return s.handleGatewayInfo(c)
-	}, s.validateAndFillGatewayIDs())
+	}, []echo.MiddlewareFunc{
+		s.validateAndFillGatewayIDs(),
+		s.checkAuthPresence(),
+	}...)
 	group.GET("/frequency-plans/:frequency_plan_id", func(c echo.Context) error {
 		return s.handleFreqPlanInfo(c)
 	})
