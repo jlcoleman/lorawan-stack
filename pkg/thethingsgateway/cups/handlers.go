@@ -49,7 +49,6 @@ func (s *Server) handleGatewayInfo(c echo.Context) error {
 		"update_channel",
 		"auto_update",
 	}}
-
 	ctx := s.getContext(c)
 	gatewayIDs := c.Get(gatewayIDKey).(ttnpb.GatewayIdentifiers)
 	if gateway, err := s.getRegistry(ctx, &gatewayIDs).Get(ctx, &ttnpb.GetGatewayRequest{
