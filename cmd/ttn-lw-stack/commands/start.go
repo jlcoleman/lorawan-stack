@@ -35,7 +35,6 @@ import (
 	"go.thethings.network/lorawan-stack/pkg/networkserver"
 	nsredis "go.thethings.network/lorawan-stack/pkg/networkserver/redis"
 	"go.thethings.network/lorawan-stack/pkg/redis"
-	ttgcups "go.thethings.network/lorawan-stack/pkg/thethingsgateway/cups"
 	"go.thethings.network/lorawan-stack/pkg/web"
 )
 
@@ -194,10 +193,10 @@ var (
 
 			if start.CUPS {
 				logger.Info("Setting up CUPS")
-				cups := config.CUPS.NewServer(c)
+				cups := config.CUPS.BasicStation.NewServer(c)
 				_ = cups
 
-				ttgCups := ttgcups.Config{}.NewServer(c)
+				ttgCups := config.CUPS.TheThingsGateway.NewServer(c)
 				_ = ttgCups
 			}
 

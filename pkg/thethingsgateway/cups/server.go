@@ -22,6 +22,8 @@ import (
 	"go.thethings.network/lorawan-stack/pkg/web"
 )
 
+const defaultFirmwarePath = "https://thethingsproducts.blob.core.windows.net/the-things-gateway/v1"
+
 // Config is the configuration of the The Things Gateay CUPS server.
 type Config struct {
 	Default struct {
@@ -34,9 +36,10 @@ type Config struct {
 // NewServer returns a new CUPS server from this config on top of the component.
 func (conf Config) NewServer(c *component.Component, customOpts ...Option) *Server {
 	opts := []Option{
-		WithDefaultUpdateChannel(conf.Default.UpdateChannel),
-		WithDefaultFirmwareURL(conf.Default.FirmwareURL),
-		WithDefaultMQTTServer(conf.Default.MQTTServer),
+		WithConfig(conf),
+	}
+	if conf.Default.FirmwareURL == "" {
+		opts = append(opts, WithDefaultFirmwareURL(defaultFirmwarePath))
 	}
 	s := NewServer(c, append(opts, customOpts...)...)
 	c.RegisterWeb(s)

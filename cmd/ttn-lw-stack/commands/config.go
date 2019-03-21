@@ -31,6 +31,7 @@ import (
 	"go.thethings.network/lorawan-stack/pkg/identityserver"
 	"go.thethings.network/lorawan-stack/pkg/joinserver"
 	"go.thethings.network/lorawan-stack/pkg/networkserver"
+	ttg_cups "go.thethings.network/lorawan-stack/pkg/thethingsgateway/cups"
 )
 
 // Config for the ttn-lw-stack binary.
@@ -42,7 +43,10 @@ type Config struct {
 	AS               applicationserver.Config `name:"as"`
 	JS               joinserver.Config        `name:"js"`
 	Console          console.Config           `name:"console"`
-	CUPS             cups.ServerConfig        `name:"cups"`
+	CUPS             struct {
+		BasicStation     cups.ServerConfig `name:"basic-station"`
+		TheThingsGateway ttg_cups.Config   `name:"the-things-gateway"`
+	} `name:"cups"`
 }
 
 // DefaultConfig contains the default config for the ttn-lw-stack binary.
