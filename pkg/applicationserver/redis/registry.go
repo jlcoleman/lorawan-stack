@@ -32,18 +32,10 @@ var (
 )
 
 func applyDeviceFieldMask(dst, src *ttnpb.EndDevice, paths ...string) (*ttnpb.EndDevice, error) {
-	paths = append(paths, "ids")
-
 	if dst == nil {
 		dst = &ttnpb.EndDevice{}
 	}
-	if err := dst.SetFields(src, paths...); err != nil {
-		return nil, err
-	}
-	if err := dst.ValidateFields(paths...); err != nil {
-		return nil, err
-	}
-	return dst, nil
+	return dst, dst.SetFields(src, paths...)
 }
 
 // DeviceRegistry is a Redis device registry.
@@ -69,7 +61,10 @@ func (r *DeviceRegistry) Get(ctx context.Context, ids ttnpb.EndDeviceIdentifiers
 	if err := ttnredis.GetProto(r.Redis, r.uidKey(unique.ID(ctx, ids))).ScanProto(pb); err != nil {
 		return nil, err
 	}
-	return applyDeviceFieldMask(nil, pb, paths...)
+	return applyDeviceFieldMask(nil, pb, append(paths,
+		"ids.application_ids",
+		"ids.device_id",
+	)...)
 }
 
 func equalEUI(x, y *types.EUI64) bool {
@@ -97,6 +92,13 @@ func (r *DeviceRegistry) Set(ctx context.Context, ids ttnpb.EndDeviceIdentifiers
 			return err
 		}
 
+		gets = append(gets,
+			"created_at",
+			"ids.application_ids",
+			"ids.device_id",
+			"updated_at",
+		)
+
 		var err error
 		if stored != nil {
 			pb = &ttnpb.EndDevice{}
@@ -118,9 +120,9 @@ func (r *DeviceRegistry) Set(ctx context.Context, ids ttnpb.EndDeviceIdentifiers
 			return nil
 		}
 
-		var f func(redis.Pipeliner) error
+		var pipelined func(redis.Pipeliner) error
 		if pb == nil {
-			f = func(p redis.Pipeliner) error {
+			pipelined = func(p redis.Pipeliner) error {
 				p.Del(uk)
 				if stored.JoinEUI != nil && stored.DevEUI != nil {
 					p.Del(r.euiKey(*stored.JoinEUI, *stored.DevEUI))
@@ -137,6 +139,11 @@ func (r *DeviceRegistry) Set(ctx context.Context, ids ttnpb.EndDeviceIdentifiers
 
 			updated := &ttnpb.EndDevice{}
 			if stored == nil {
+				sets = append(sets,
+					"ids.application_ids",
+					"ids.device_id",
+				)
+
 				pb.CreatedAt = pb.UpdatedAt
 				sets = append(sets, "created_at")
 
@@ -157,14 +164,13 @@ func (r *DeviceRegistry) Set(ctx context.Context, ids ttnpb.EndDeviceIdentifiers
 					return errInvalidIdentifiers
 				}
 			}
-			pb, err = applyDeviceFieldMask(nil, updated, gets...)
-			if err != nil {
+			if err := updated.ValidateFields(sets...); err != nil {
 				return err
 			}
 
-			f = func(p redis.Pipeliner) error {
+			pipelined = func(p redis.Pipeliner) error {
 				if stored == nil && updated.JoinEUI != nil && updated.DevEUI != nil {
-					ek := r.euiKey(*pb.JoinEUI, *pb.DevEUI)
+					ek := r.euiKey(*updated.JoinEUI, *updated.DevEUI)
 					if err := tx.Watch(ek).Err(); err != nil {
 						return err
 					}
@@ -183,8 +189,12 @@ func (r *DeviceRegistry) Set(ctx context.Context, ids ttnpb.EndDeviceIdentifiers
 				}
 				return nil
 			}
+			pb, err = applyDeviceFieldMask(nil, updated, gets...)
+			if err != nil {
+				return err
+			}
 		}
-		_, err = tx.Pipelined(f)
+		_, err = tx.Pipelined(pipelined)
 		if err != nil {
 			return err
 		}
@@ -261,6 +271,7 @@ func (r *LinkRegistry) Range(ctx context.Context, paths []string, f func(context
 func (r *LinkRegistry) Set(ctx context.Context, ids ttnpb.ApplicationIdentifiers, gets []string, f func(*ttnpb.ApplicationLink) (*ttnpb.ApplicationLink, []string, error)) (*ttnpb.ApplicationLink, error) {
 	uid := unique.ID(ctx, ids)
 	uk := r.appKey(uid)
+
 	var pb *ttnpb.ApplicationLink
 	err := r.Redis.Watch(func(tx *redis.Tx) error {
 		cmd := ttnredis.GetProto(tx, uk)
@@ -292,9 +303,9 @@ func (r *LinkRegistry) Set(ctx context.Context, ids ttnpb.ApplicationIdentifiers
 			return nil
 		}
 
-		var f func(redis.Pipeliner) error
+		var pipelined func(redis.Pipeliner) error
 		if pb == nil {
-			f = func(p redis.Pipeliner) error {
+			pipelined = func(p redis.Pipeliner) error {
 				p.Del(uk)
 				p.SRem(r.allKey(), uid)
 				return nil
@@ -311,12 +322,11 @@ func (r *LinkRegistry) Set(ctx context.Context, ids ttnpb.ApplicationIdentifiers
 				return err
 			}
 
-			pb, err = applyLinkFieldMask(nil, updated, gets...)
-			if err != nil {
+			if err := updated.ValidateFields(sets...); err != nil {
 				return err
 			}
 
-			f = func(p redis.Pipeliner) error {
+			pipelined = func(p redis.Pipeliner) error {
 				_, err := ttnredis.SetProto(p, uk, updated, 0)
 				if err != nil {
 					return err
@@ -324,8 +334,12 @@ func (r *LinkRegistry) Set(ctx context.Context, ids ttnpb.ApplicationIdentifiers
 				p.SAdd(r.allKey(), uid)
 				return nil
 			}
+			pb, err = applyLinkFieldMask(nil, updated, gets...)
+			if err != nil {
+				return err
+			}
 		}
-		_, err = tx.Pipelined(f)
+		_, err = tx.Pipelined(pipelined)
 		if err != nil {
 			return err
 		}
